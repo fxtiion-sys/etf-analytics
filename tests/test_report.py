@@ -1,8 +1,9 @@
 """Tests for the Markdown report, using small fake data (no network)."""
 import numpy as np
 import pandas as pd
+import pytest
 
-from etf_analytics import charts, report
+from etf_analytics import charts, report, validate
 
 
 def fake_prices():
@@ -35,3 +36,11 @@ def test_build_report_writes_markdown_and_charts(tmp_path):
     for chart in ["cumulative_returns.png", "vfv_vs_spy.png", "tracking_difference.png"]:
         assert f"({chart})" in text
         assert (tmp_path / chart).exists()
+
+def test_build_report_stops_on_bad_data(tmp_path):
+    prices = fake_prices()
+    prices.loc["2022-03-01", "SPY"] *= 1.5  # a +50% jump, like a bad tick
+
+    with pytest.raises(validate.DataValidationError, match="SPY: daily move"):
+        report.build_report(prices, out_dir=tmp_path)
+    assert not (tmp_path / "report.md").exists()

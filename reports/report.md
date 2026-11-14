@@ -54,4 +54,6 @@ Daily tracking error over the full period is 3.57% (annualized), against 8.60% w
 
 ## 4. Data notes
 
-Only days when both markets and the Bank of Canada were open are used (1,302 rows before alignment, 1,217 after). Closed in Canada only: 27 days. Closed in the US only: 27 days. Closed in both: 20 days. Both markets open but no Bank of Canada rate: 10 days.
+Only days when both markets and the Bank of Canada were open are used (1,301 rows before alignment, 1,217 after). Closed in Canada only: 27 days. Closed in the US only: 27 days. Closed in both: 19 days. Both markets open but no Bank of Canada rate: 10 days.
+
+All data checks passed: no missing columns, duplicate or weekend dates, or zero or negative prices; no daily move above 15% (5% for USD/CAD); no price unchanged for 5 days in a row; no gap over 7 calendar days; and the two USD/CAD sources within 3% of each other.

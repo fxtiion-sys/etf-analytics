@@ -52,12 +52,12 @@ The USD/CAD rate comes from the Bank of Canada [Valet API](https://www.bankofcan
 The TSX and NYSE close on different holidays, so joining the two markets leaves gaps. Over the 5-year period:
 
 | Closed | Days | Examples (2026) |
-|---|---|---|
+|---|----|---|
 | Canada only | 27 | Victoria Day, Canada Day, Civic Holiday, Thanksgiving (Oct) |
 | US only | 27 | MLK Day, Memorial Day, Juneteenth, Independence Day |
-| Both | 20 | Family Day / Presidents' Day, Good Friday, Labour Day |
+| Both | 19 | Family Day / Presidents' Day, Good Friday, Labour Day |
 
-I kept only days when **both markets were open** and the Bank of Canada published a rate (1,302 → 1,217 rows). The Bank is closed on 10 days in the period when both markets traded — Remembrance Day and the National Day for Truth and Reconciliation. Forward-filling the missing prices would create fake 0% days on holidays and push that day's real move into the next day's return, distorting volatility and correlation.
+I kept only days when **both markets were open** and the Bank of Canada published a rate (1,301 → 1,217 rows). The Bank is closed on 10 days in the period when both markets traded — Remembrance Day and the National Day for Truth and Reconciliation. Forward-filling the missing prices would create fake 0% days on holidays and push that day's real move into the next day's return, distorting volatility and correlation.
 
 ### Metrics
 
@@ -69,6 +69,22 @@ All metrics are pure functions in `etf_analytics/metrics.py`:
 - **Sharpe ratio**: return per unit of volatility, with a **0% risk-free rate**. It is used only to compare the ETFs with each other.
 - **Correlation**: how closely the ETFs move together
 - **Beta**: sensitivity to SPY
+
+### Data validation
+
+Before any analysis, `etf_analytics/validate.py` checks the data and stops the pipeline, listing every problem, if something looks wrong:
+
+| Check | Fails when | Largest value in the real data |
+|---|---|---|
+| Daily move (ETFs) | above 15% | QQQ +12.0% (April 2025) |
+| Daily move (USD/CAD) | above 5% | about 2% |
+| Frozen price | same value 5 days in a row | 2 days |
+| Gap between dates | over 7 calendar days | 6 days (Christmas) |
+| Bank of Canada vs Yahoo USD/CAD | differ by over 3% | 1.6% |
+
+It also checks for missing columns, out-of-order, duplicate or weekend dates, and zero or negative prices. The thresholds are set above the largest real values so that real market moves pass and data errors do not.
+
+The weekend check found a real problem: Yahoo's currency feed included a Saturday row with only `CAD=X`, which was being counted as a day when both markets were closed. Weekend rows are now dropped when the data is loaded.
 
 ### VFV vs SPY
 
@@ -87,12 +103,13 @@ python -m etf_analytics.report    # data → metrics → charts → reports/repo
 python -m pytest -v               # run the unit tests
 ```
 
-The first run reads the cached CSVs. Use `python -m etf_analytics.fetch --refresh` to download fresh data. Each step can also be run on its own: `fetch`, `clean`, `tracking`, `charts`.
-
+The first run reads the cached CSVs. Use `python -m etf_analytics.fetch --refresh` to download fresh data. Each step can also be run on its own: `fetch`, `clean`, `validate`, `tracking`, `charts`.
 ## Tests
 
 Every metric is checked against small series whose answers can be worked out by hand. For example, prices `[100, 110, 99]` must give returns of `+10%` and `−10%` and a maximum drawdown of `−10%`.
 The chart and report tests use small fake data with Canadian, US and Bank of Canada holidays, and the Bank of Canada download is tested on a hand-written API response, so the whole suite runs without the network. GitHub Actions runs it on every pull request.
+Each data check is tested by starting from clean fake data and breaking it on purpose, for example a +20% jump or a price frozen for five days.
+
 ## Project structure
 
 ```
@@ -104,6 +121,7 @@ etf-analytics/
 │   ├── fetch.py                  # download + cache
 │   ├── fx.py                     # Bank of Canada USD/CAD rate
 │   ├── clean.py                  # align TSX/NYSE trading calendars
+│   ├── validate.py               # data checks before analysis
 │   ├── metrics.py                # return, risk and correlation metrics
 │   ├── tracking.py               # VFV vs SPY in CAD
 │   ├── charts.py                 # PNG charts
