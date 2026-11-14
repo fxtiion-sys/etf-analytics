@@ -13,7 +13,7 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import PercentFormatter
 
-from etf_analytics import metrics, tracking
+from etf_analytics import fx, metrics, tracking
 
 REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
 ETFS = ["VFV.TO", "SPY", "XIU.TO", "XIC.TO", "QQQ"]
@@ -162,9 +162,9 @@ def tracking_difference(yearly_difference: pd.Series, path: Path, ytd_year: int 
 
 
 def make_all_charts(prices: pd.DataFrame, out_dir: Path = REPORTS_DIR) -> dict[str, Path]:
-    """Draw every chart from aligned prices (including CAD=X) and return their paths."""
+    """Draw every chart from aligned prices (including the USD/CAD column) and return their paths."""
     etfs = prices[ETFS]
-    spy_cad = tracking.to_cad(prices["SPY"], prices["CAD=X"])
+    spy_cad = tracking.to_cad(prices["SPY"], prices[fx.COLUMN])
     yearly = tracking.tracking_difference(prices["VFV.TO"], spy_cad)
     return {
         "cumulative_returns": cumulative_returns(etfs, out_dir / "cumulative_returns.png"),
@@ -180,9 +180,9 @@ def make_all_charts(prices: pd.DataFrame, out_dir: Path = REPORTS_DIR) -> dict[s
 
 def main() -> None:
     from etf_analytics.clean import align_trading_days
-    from etf_analytics.fetch import load_prices
+    from etf_analytics.fetch import load_data
 
-    for name, path in make_all_charts(align_trading_days(load_prices())).items():
+    for name, path in make_all_charts(align_trading_days(load_data())).items():
         print(f"{name:20s} {path}")
 
 

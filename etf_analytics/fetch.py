@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 
 import pandas as pd
+from etf_analytics import fx
 
 TICKERS = ["XIU.TO", "XIC.TO", "VFV.TO", "SPY", "QQQ", "CAD=X"]
 PERIOD = "5y"
@@ -35,6 +36,12 @@ def load_prices(refresh: bool = False, path: Path = CACHE_PATH) -> pd.DataFrame:
     path.parent.mkdir(parents=True, exist_ok=True)
     prices.to_csv(path)
     return prices
+
+def load_data(refresh: bool = False) -> pd.DataFrame:
+    """Yahoo prices plus the Bank of Canada USD/CAD rate, both cached as CSV."""
+    prices = load_prices(refresh=refresh)
+    rates = fx.load_usdcad(prices.index.min().date(), prices.index.max().date(), refresh=refresh)
+    return fx.add_usdcad(prices, rates)
 
 
 def main() -> None:

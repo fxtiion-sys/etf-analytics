@@ -10,26 +10,30 @@ VFV and SPY both track the S&P 500. For an investor in Canada, how different is 
 
 ## Key findings
 
-Data: 2021-11-15 to 2026-11-13, 1,227 trading days when both the TSX and NYSE were open.
+Data: 2021-11-15 to 2026-11-13, 1,217 trading days when the TSX, the NYSE and the Bank of Canada were all open.
 
 **1. The gap between VFV and SPY is the currency, not the fund.**
-VFV returned 14.3% a year and SPY 11.5% a year. Once SPY is converted to Canadian dollars, it returned 14.4% a year — almost exactly VFV. The difference came from USD/CAD rising from 1.2545 to 1.4261 (+13.7%) over the period.
+VFV returned 14.3% a year and SPY 11.5% a year. Once SPY is converted to Canadian dollars, it returned 14.5% a year — almost exactly VFV. The difference came from USD/CAD rising from 1.2517 to 1.4257 (+13.9%, Bank of Canada) over the period.
 
 ![VFV vs SPY](reports/vfv_vs_spy.png)
 
 **2. VFV tracks SPY in CAD closely, with a small expected lag.**
 A small lag is expected from VFV's 0.08% fund expense ratio (FER) and the 15% US withholding tax on dividends, because VFV holds the US-listed Vanguard S&P 500 ETF ([Vanguard](https://www.vanguard.ca/en/product/etf/equity/9563/vanguard-sp-500-index-etf), as at Nov 13, 2026).
+Converting SPY with the Bank of Canada's official daily rate instead of Yahoo's `CAD=X` cut the daily tracking error from 8.6% to 3.6% (annualized): most of the earlier gap was noise in the exchange rate, not a difference between the funds.
+
+Yearly differences still move by a few tenths of a percentage point, partly because the year-end exchange rate is also a daily average rather than a 4 p.m. close.
 
 ![Tracking difference by year](reports/tracking_difference.png)
 
 **3. A weaker Canadian dollar softened losses for Canadian investors.**
-The worst drawdown was −22.2% for VFV and −22.6% for SPY in CAD, against −24.5% for SPY in USD: the US dollar strengthened during the 2022 decline. Canadian equity ETFs were less risky still — XIU and XIC had a maximum drawdown of about −16%, volatility of about 13%, and a beta of about 0.6 to SPY.
+The worst drawdown was −22.2% for both VFV and SPY in CAD, against −24.5% for SPY in USD: the US dollar strengthened during the 2022 decline. Canadian equity ETFs were less risky still — XIU and XIC had a maximum drawdown of about −16%, volatility of about 13%, and a beta of about 0.6 to SPY.
 
 The full report with all tables and charts is in [`reports/report.md`](reports/report.md).
 
 ## Data
 
 Daily prices from Yahoo Finance via `yfinance`. Prices are adjusted for dividends and splits (`auto_adjust=True`). The raw download is cached in `data/raw/prices.csv` so results are reproducible without the network.
+The USD/CAD rate comes from the Bank of Canada [Valet API](https://www.bankofcanada.ca/valet/docs) (series `FXUSDCAD`) and is cached in `data/raw/usdcad_boc.csv`.
 
 | Ticker | What it is | Why it's here |
 |---|---|---|
@@ -38,7 +42,8 @@ Daily prices from Yahoo Finance via `yfinance`. Prices are adjusted for dividend
 | VFV.TO | S&P 500, traded in CAD | Main subject |
 | SPY | S&P 500, traded in USD | Benchmark for VFV |
 | QQQ | Nasdaq 100 | A different, tech-heavy comparison |
-| CAD=X | USD/CAD exchange rate | Convert SPY to CAD |
+| USDCAD | Bank of Canada daily USD/CAD rate | Convert SPY to CAD |
+| CAD=X | Yahoo USD/CAD rate | Comparison only |
 
 ## Method
 
@@ -52,7 +57,7 @@ The TSX and NYSE close on different holidays, so joining the two markets leaves 
 | US only | 27 | MLK Day, Memorial Day, Juneteenth, Independence Day |
 | Both | 20 | Family Day / Presidents' Day, Good Friday, Labour Day |
 
-I kept only days when **both markets were open** (1,302 → 1,227 rows). Forward-filling the missing prices would create fake 0% days on holidays and push that day's real move into the next day's return, distorting volatility and correlation.
+I kept only days when **both markets were open** and the Bank of Canada published a rate (1,302 → 1,217 rows). The Bank is closed on 10 days in the period when both markets traded — Remembrance Day and the National Day for Truth and Reconciliation. Forward-filling the missing prices would create fake 0% days on holidays and push that day's real move into the next day's return, distorting volatility and correlation.
 
 ### Metrics
 
@@ -69,7 +74,7 @@ All metrics are pure functions in `etf_analytics/metrics.py`:
 
 SPY is converted to Canadian dollars by multiplying its price by the USD/CAD rate, then compared with VFV by calendar year (tracking difference) and day by day (tracking error).
 
-**Limitation:** Yahoo's USD/CAD close is not taken at the 4 p.m. ET market close, so the day-by-day conversion adds timing noise. The daily tracking error (8.6% annualized) is overstated for this reason, and the calendar-year comparison is the more reliable measure.
+**Limitation:** Neither exchange rate is taken at the 4 p.m. ET market close — the Bank of Canada rate is a daily average — so the day-by-day conversion still adds some timing noise. Switching from Yahoo's `CAD=X` to the Bank of Canada rate lowered the daily tracking error from 8.6% to 3.6%, but the calendar-year comparison remains the more reliable measure.
 
 ## How to run
 
@@ -82,20 +87,22 @@ python -m etf_analytics.report    # data → metrics → charts → reports/repo
 python -m pytest -v               # run the unit tests
 ```
 
-The first run reads the cached CSV. Use `python -m etf_analytics.fetch --refresh` to download fresh data. Each step can also be run on its own: `fetch`, `clean`, `tracking`, `charts`.
+The first run reads the cached CSVs. Use `python -m etf_analytics.fetch --refresh` to download fresh data. Each step can also be run on its own: `fetch`, `clean`, `tracking`, `charts`.
 
 ## Tests
 
-Every metric is checked against small series whose answers can be worked out by hand. For example, prices `[100, 110, 99]` must give returns of `+10%` and `−10%` and a maximum drawdown of `−10%`. The chart and report tests use small fake data with Canadian and US holidays, so the whole suite runs without the network. GitHub Actions runs it on every pull request.
-
+Every metric is checked against small series whose answers can be worked out by hand. For example, prices `[100, 110, 99]` must give returns of `+10%` and `−10%` and a maximum drawdown of `−10%`.
+The chart and report tests use small fake data with Canadian, US and Bank of Canada holidays, and the Bank of Canada download is tested on a hand-written API response, so the whole suite runs without the network. GitHub Actions runs it on every pull request.
 ## Project structure
 
 ```
 etf-analytics/
 ├── .github/workflows/tests.yml   # run pytest on every PR and push to main
 ├── data/raw/prices.csv           # cached prices
+├── data/raw/usdcad_boc.csv       # cached Bank of Canada USD/CAD rate
 ├── etf_analytics/
 │   ├── fetch.py                  # download + cache
+│   ├── fx.py                     # Bank of Canada USD/CAD rate
 │   ├── clean.py                  # align TSX/NYSE trading calendars
 │   ├── metrics.py                # return, risk and correlation metrics
 │   ├── tracking.py               # VFV vs SPY in CAD
