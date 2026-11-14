@@ -49,8 +49,9 @@ def main() -> None:
     for name, dates in holiday_mismatches(prices).items():
         examples = ", ".join(d.strftime("%Y-%m-%d") for d in dates[-4:])
         print(f"{name:12s} {len(dates):3d} days   e.g. {examples}")
-        no_fx = missing_fx_days(prices)
-        print(f"{'no BoC rate':12s} {len(no_fx):3d} days   e.g. {', '.join(d.strftime('%Y-%m-%d') for d in no_fx[-4:])}")
+
+    no_fx = missing_fx_days(prices)
+    print(f"{'no BoC rate':12s} {len(no_fx):3d} days   e.g. {', '.join(d.strftime('%Y-%m-%d') for d in no_fx[-4:])}")
 
 
 if __name__ == "__main__":

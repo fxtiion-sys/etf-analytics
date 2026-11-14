@@ -38,10 +38,19 @@ def load_prices(refresh: bool = False, path: Path = CACHE_PATH) -> pd.DataFrame:
     return prices
 
 def load_data(refresh: bool = False) -> pd.DataFrame:
-    """Yahoo prices plus the Bank of Canada USD/CAD rate, both cached as CSV."""
-    prices = load_prices(refresh=refresh)
+    """Yahoo prices plus the Bank of Canada USD/CAD rate, both cached as CSV.
+
+    Yahoo's currency feed can include a weekend row (e.g. a Saturday with only CAD=X),
+    which would otherwise be counted as a day when both markets were closed.
+    """
+    prices = drop_weekends(load_prices(refresh=refresh))
     rates = fx.load_usdcad(prices.index.min().date(), prices.index.max().date(), refresh=refresh)
     return fx.add_usdcad(prices, rates)
+
+
+def drop_weekends(prices: pd.DataFrame) -> pd.DataFrame:
+    """Remove Saturday and Sunday rows."""
+    return prices[prices.index.day_of_week < 5]
 
 
 def main() -> None:

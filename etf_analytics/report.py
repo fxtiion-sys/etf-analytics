@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from etf_analytics import charts, fx, metrics, tracking
+from etf_analytics import charts, fx, metrics, tracking, validate
 from etf_analytics.clean import align_trading_days, holiday_mismatches, missing_fx_days
 
 RISK_FREE_RATE = 0.0  # annual assumption for the Sharpe ratio; stated in the report and README
@@ -42,8 +42,11 @@ def markdown_table(df: pd.DataFrame, formats: dict[str, str], index_name: str = 
 
 
 def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -> Path:
-    """Run the whole analysis on raw prices and write report.md plus charts to out_dir."""
+    """Run the whole analysis on raw prices and write report.md plus charts to out_dir.
+    Raises validate.DataValidationError before writing anything if the data fails a check.
+    """
     prices = align_trading_days(raw_prices)
+    validate.validate(raw_prices, prices)
     start, end = prices.index[0].date(), prices.index[-1].date()
     chart_paths = charts.make_all_charts(prices, out_dir)
 
@@ -129,6 +132,11 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
         f"{len(prices):,} after). Closed in Canada only: {len(holidays['canada_only'])} days. "
         f"Closed in the US only: {len(holidays['us_only'])} days. Closed in both: {len(holidays['both'])} days. "
         f"Both markets open but no Bank of Canada rate: {len(no_fx)} days.",
+        "",
+        "All data checks passed: no missing columns, duplicate or weekend dates, or zero or negative prices; "
+        f"no daily move above {validate.MAX_DAILY_MOVE:.0%} ({validate.MAX_FX_DAILY_MOVE:.0%} for USD/CAD); "
+        f"no price unchanged for {validate.STALE_DAYS} days in a row; no gap over {validate.MAX_GAP_DAYS} "
+        f"calendar days; and the two USD/CAD sources within {validate.MAX_FX_DIFFERENCE:.0%} of each other.",
         "",
     ]
 
