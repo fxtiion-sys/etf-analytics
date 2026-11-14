@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from etf_analytics import charts, metrics, tracking
-from etf_analytics.clean import align_trading_days, holiday_mismatches
+from etf_analytics import charts, fx, metrics, tracking
+from etf_analytics.clean import align_trading_days, holiday_mismatches, missing_fx_days
 
 RISK_FREE_RATE = 0.0  # annual assumption for the Sharpe ratio; stated in the report and README
 
@@ -52,7 +52,7 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
     summary = summary.rename(index=charts.LABELS, columns=METRIC_NAMES)
 
     # VFV vs SPY, with SPY converted to Canadian dollars
-    spy_cad = tracking.to_cad(prices["SPY"], prices["CAD=X"]).rename("SPY_CAD")
+    spy_cad = tracking.to_cad(prices["SPY"], prices[fx.COLUMN]).rename("SPY_CAD")
     compare = pd.concat([prices["VFV.TO"], spy_cad, prices["SPY"]], axis=1)
     compare_summary = metrics.summary_table(compare, market="SPY_CAD", risk_free_rate=RISK_FREE_RATE)
     compare_summary = compare_summary[["annual_return", "annual_volatility", "max_drawdown"]]
@@ -67,10 +67,14 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
 
     returns = metrics.daily_returns(compare)
     daily_te = (returns["VFV.TO"] - returns["SPY_CAD"]).std() * np.sqrt(metrics.TRADING_DAYS)
-    fx = prices["CAD=X"]
-    fx_change = fx.iloc[-1] / fx.iloc[0] - 1
+
+    usdcad = prices[fx.COLUMN]
+    fx_change = usdcad.iloc[-1] / usdcad.iloc[0] - 1
+    yahoo_cad = tracking.to_cad(prices["SPY"], prices["CAD=X"])
+    yahoo_te = (returns["VFV.TO"] - metrics.daily_returns(yahoo_cad)).std() * np.sqrt(metrics.TRADING_DAYS)
 
     holidays = holiday_mismatches(raw_prices)
+    no_fx = missing_fx_days(raw_prices)
 
     def image(name: str, alt: str) -> str:
         return f"![{alt}]({chart_paths[name].name})"
@@ -78,8 +82,8 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
     lines = [
         "# ETF Analytics Report",
         "",
-        f"**Data:** {start} to {end}, {len(prices):,} trading days when both the TSX and NYSE were open.  ",
-        f"**Generated:** {date.today()}  ",
+        f"**Data:** {start} to {end}, {len(prices):,} trading days when the TSX, the NYSE "
+        "and the Bank of Canada were all open.  ",        f"**Generated:** {date.today()}  ",
         f"**Sharpe ratio risk-free rate (assumption):** {RISK_FREE_RATE:.1%} per year",
         "",
         "## 1. Summary",
@@ -96,8 +100,8 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
         "",
         "## 2. VFV vs SPY",
         "",
-        "SPY is converted to Canadian dollars with the USD/CAD rate "
-        f"({fx.iloc[0]:.4f} to {fx.iloc[-1]:.4f}, {fx_change:+.1%} over the period).",
+        "SPY is converted to Canadian dollars with the Bank of Canada's daily USD/CAD rate "
+        f"({usdcad.iloc[0]:.4f} to {usdcad.iloc[-1]:.4f}, {fx_change:+.1%} over the period).",
         "",
         markdown_table(compare_summary, METRIC_FORMATS),
         "",
@@ -109,9 +113,10 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
         "",
         image("tracking_difference", "Tracking difference by year"),
         "",
-        f"Daily tracking error over the full period is {daily_te:.2%} (annualized). Treat this number with "
-        "caution: Yahoo's USD/CAD close is not taken at the 4 p.m. ET market close, so converting SPY "
-        "day by day adds timing noise. The calendar-year comparison above is the more reliable measure.",
+        f"Daily tracking error over the full period is {daily_te:.2%} (annualized), against {yahoo_te:.2%} "
+        "with Yahoo's CAD=X rate. Neither rate is taken at the 4 p.m. ET market close (the Bank of Canada "
+        "rate is a daily average), so some timing noise remains. The calendar-year comparison above is "
+        "the more reliable measure.",
         "",
         "## 3. Correlation",
         "",
@@ -119,9 +124,11 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
         "",
         "## 4. Data notes",
         "",
-        f"Only days when both markets were open are used ({len(raw_prices):,} rows before alignment, "
+        "Only days when both markets and the Bank of Canada were open are used "
+        f"({len(raw_prices):,} rows before alignment, "
         f"{len(prices):,} after). Closed in Canada only: {len(holidays['canada_only'])} days. "
-        f"Closed in the US only: {len(holidays['us_only'])} days. Closed in both: {len(holidays['both'])} days.",
+        f"Closed in the US only: {len(holidays['us_only'])} days. Closed in both: {len(holidays['both'])} days. "
+        f"Both markets open but no Bank of Canada rate: {len(no_fx)} days.",
         "",
     ]
 
@@ -132,9 +139,9 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
 
 
 def main() -> None:
-    from etf_analytics.fetch import load_prices
+    from etf_analytics.fetch import load_data
 
-    print(f"Report written to {build_report(load_prices())}")
+    print(f"Report written to {build_report(load_data())}")
 
 
 if __name__ == "__main__":

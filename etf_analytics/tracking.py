@@ -4,9 +4,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from etf_analytics import metrics
+from etf_analytics import fx, metrics
 from etf_analytics.clean import align_trading_days
-from etf_analytics.fetch import load_prices
+from etf_analytics.fetch import load_data
 
 
 def to_cad(usd_prices: pd.Series, usdcad: pd.Series) -> pd.Series:
@@ -39,8 +39,8 @@ def rolling_tracking_error(
 def main() -> None:
     pd.set_option("display.max_columns", None)
     pd.set_option("display.width", 120)
-    prices = align_trading_days(load_prices())
-    spy_cad = to_cad(prices["SPY"], prices["CAD=X"]).rename("SPY_CAD")
+    prices = align_trading_days(load_data())
+    spy_cad = to_cad(prices["SPY"], prices[fx.COLUMN]).rename("SPY_CAD")
     compare = pd.concat([prices["VFV.TO"], spy_cad, prices["SPY"]], axis=1)
 
     print("== Headline metrics ==")
@@ -60,11 +60,15 @@ def main() -> None:
     print(f"\nTracking error (full period, annualized): {full_te:.3%}")
     print(f"60-day rolling tracking error: median {rolling_te.median():.3%}, max {rolling_te.max():.3%}")
 
-    fx = prices["CAD=X"]
-    fx_returns = metrics.daily_returns(fx)
-    print(f"\nUSD/CAD: {fx.iloc[0]:.4f} -> {fx.iloc[-1]:.4f} ({fx.iloc[-1] / fx.iloc[0] - 1:+.1%})")
+    usdcad = prices[fx.COLUMN]
+    fx_returns = metrics.daily_returns(usdcad)
+    print(f"\nUSD/CAD (Bank of Canada): {usdcad.iloc[0]:.4f} -> {usdcad.iloc[-1]:.4f} "
+      f"({usdcad.iloc[-1] / usdcad.iloc[0] - 1:+.1%})")
     print(f"Correlation of SPY (USD) daily returns with USD/CAD: {returns['SPY'].corr(fx_returns):.2f}")
 
+    yahoo_cad = to_cad(prices["SPY"], prices["CAD=X"])
+    yahoo_te = (returns["VFV.TO"] - metrics.daily_returns(yahoo_cad)).std() * np.sqrt(252)
+    print(f"Tracking error with Yahoo's CAD=X instead: {yahoo_te:.3%}")
 
 if __name__ == "__main__":
     main()
