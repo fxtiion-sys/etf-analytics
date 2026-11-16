@@ -3,3 +3,6 @@ yfinance
 matplotlib
 pytest
 requests
+fastapi
+uvicorn
+httpx2
