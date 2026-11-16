@@ -93,6 +93,19 @@ A GitHub Actions workflow ([`daily.yml`](.github/workflows/daily.yml)) runs ever
 
 If any step fails, nothing is committed, the cached database is not replaced, and the workflow opens a GitHub issue (or comments on the open one) with a link to the logs.
 
+### REST API
+
+[`api.py`](etf_analytics/api.py) serves the stored data as JSON with FastAPI. It only reads `data/etf.db`: if the database is empty it returns `503` instead of starting a download, so updating data stays the job of `fetch`.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /health` | `{"status": "ok"}` |
+| `GET /etfs` | the five ETFs with ticker, index, currency and first/last date |
+| `GET /etfs/{symbol}/metrics` | annual return, volatility, max drawdown, Sharpe and beta vs SPY |
+| `GET /etfs/{symbol}/prices?start=&end=` | daily adjusted closes, optionally between two dates |
+
+Symbols are short names such as `VFV` (lower case works too). An unknown symbol returns `404`, `start` after `end` returns `400`, and a badly formatted date returns `422`. The metrics are computed the same way as the report's summary table, and a test checks that they match.
+
 ### Data validation
 
 Before any analysis, `etf_analytics/validate.py` checks the data and stops the pipeline, listing every problem, if something looks wrong:
@@ -125,6 +138,12 @@ python -m pip install -r requirements.txt
 python -m etf_analytics.report    # data → metrics → charts → reports/report.md
 python -m pytest -v               # run the unit tests
 ```
+To start the API, run `python -m etf_analytics.api` and open http://127.0.0.1:8000/docs for interactive documentation, or call it directly:
+
+```bash
+curl http://127.0.0.1:8000/etfs/VFV/metrics
+```
+
 For development, install the extra tools and run the same checks as CI:
 
 ```bash
@@ -141,6 +160,8 @@ The first run downloads all data since 2021-11-15 into `data/etf.db`. After that
 Every metric is checked against small series whose answers can be worked out by hand. For example, prices `[100, 110, 99]` must give returns of `+10%` and `−10%` and a maximum drawdown of `−10%`.
 The chart and report tests use small fake data with Canadian, US and Bank of Canada holidays, and the Bank of Canada download is tested on a hand-written API response, so the whole suite runs without the network.
 Each data check is tested by starting from clean fake data and breaking it on purpose, for example a +20% jump or a price frozen for five days.
+
+The API is tested with FastAPI's `TestClient`. Most tests replace the database with fake prices through `dependency_overrides`; two use a temporary SQLite file to check the real read path and the `503` on an empty database.
 
 GitHub Actions runs two jobs on every pull request: `lint` (ruff lint, ruff format check and mypy type check) and `pytest`.
 
@@ -162,7 +183,8 @@ etf-analytics/
 │   ├── storage.py                # SQLite storage
 │   ├── tracking.py               # VFV vs SPY in CAD
 │   ├── charts.py                 # PNG charts
-│   └── report.py                 # one-command Markdown report
+│   ├── report.py                 # one-command Markdown report
+│   └── api.py                    # read-only REST API (FastAPI)
 ├── tests/                        # unit and smoke tests
 ├── reports/                      # report.md + charts
 └── requirements.txt
