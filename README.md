@@ -32,8 +32,9 @@ The full report with all tables and charts is in [`reports/report.md`](reports/r
 
 ## Data
 
-Daily prices from Yahoo Finance via `yfinance`. Prices are adjusted for dividends and splits (`auto_adjust=True`). The raw download is cached in `data/raw/prices.csv` so results are reproducible without the network.
-The USD/CAD rate comes from the Bank of Canada [Valet API](https://www.bankofcanada.ca/valet/docs) (series `FXUSDCAD`) and is cached in `data/raw/usdcad_boc.csv`.
+Daily prices from Yahoo Finance via `yfinance`. Prices are adjusted for dividends and splits (`auto_adjust=True`). Daily prices from Yahoo Finance via `yfinance`. Prices are adjusted for dividends and splits (`auto_adjust=True`).
+The USD/CAD rate comes from the Bank of Canada [Valet API](https://www.bankofcanada.ca/valet/docs) (series `FXUSDCAD`).
+Both are stored in a local SQLite database, `data/etf.db`.
 
 | Ticker | What it is | Why it's here |
 |---|---|---|
@@ -69,6 +70,14 @@ All metrics are pure functions in `etf_analytics/metrics.py`:
 - **Sharpe ratio**: return per unit of volatility, with a **0% risk-free rate**. It is used only to compare the ETFs with each other.
 - **Correlation**: how closely the ETFs move together
 - **Beta**: sensitivity to SPY
+
+### Storage and incremental updates
+
+Prices are stored in SQLite in long format, one row per `(date, symbol)`, with that pair as the primary key and a `CHECK (value > 0)` constraint. Writes are upserts inside a transaction, so re-running an update never creates duplicates and a failed batch writes nothing.
+
+Each update downloads only the last 10 days and writes them over what is stored. Yahoo's adjusted prices are recalculated back through history whenever a fund pays a dividend, so the overlapping days are compared with the stored values first: if they differ by more than 0.01%, the whole history is downloaded again. Appending new prices to old, differently scaled ones would silently hide that dividend.
+
+The data ends at the latest date both sources have published. The Bank of Canada publishes its rate at 4:30 p.m. ET, so without this cutoff a run during the trading day would count today as a Bank of Canada holiday.
 
 ### Data validation
 
@@ -111,7 +120,7 @@ ruff format .         # format
 mypy                  # type check
 ```
 
-The first run reads the cached CSVs. Use `python -m etf_analytics.fetch --refresh` to download fresh data. Each step can also be run on its own: `fetch`, `clean`, `validate`, `tracking`, `charts`.
+The first run downloads all data since 2021-11-15 into `data/etf.db`. After that, `python -m etf_analytics.fetch` downloads only the days since the last update (`--full` downloads everything again). Each step can also be run on its own: `fetch`, `clean`, `validate`, `tracking`, `charts`.
 
 ## Tests
 
@@ -126,16 +135,16 @@ GitHub Actions runs two jobs on every pull request: `lint` (ruff lint, ruff form
 ```
 etf-analytics/
 ├── .github/workflows/tests.yml   # run pytest on every PR and push to main
-├── data/raw/prices.csv           # cached prices
-├── data/raw/usdcad_boc.csv       # cached Bank of Canada USD/CAD rate
+├── data/etf.db                   # SQLite database (not committed)
 ├── pyproject.toml                # ruff and mypy settings
 ├── requirements-dev.txt          # ruff and mypy, pinned
 ├── etf_analytics/
-│   ├── fetch.py                  # download + cache
 │   ├── fx.py                     # Bank of Canada USD/CAD rate
 │   ├── clean.py                  # align TSX/NYSE trading calendars
 │   ├── validate.py               # data checks before analysis
 │   ├── metrics.py                # return, risk and correlation metrics
+│   ├── fetch.py                  # download + incremental update
+│   ├── storage.py                # SQLite storage
 │   ├── tracking.py               # VFV vs SPY in CAD
 │   ├── charts.py                 # PNG charts
 │   └── report.py                 # one-command Markdown report

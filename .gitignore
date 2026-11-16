@@ -219,3 +219,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .idea/
+
+# Local price database (rebuilt by `python -m etf_analytics.fetch`)
+data/*.db

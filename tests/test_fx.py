@@ -28,17 +28,10 @@ def test_parse_valet_rejects_empty_response():
         fx.parse_valet({"observations": []})
 
 
-def test_load_usdcad_reads_cache_without_network(tmp_path):
-    path = tmp_path / "usdcad.csv"
-    fx.parse_valet(VALET_SAMPLE).to_csv(path)
-    rates = fx.load_usdcad(start=None, end=None, path=path)  # dates unused when the cache exists
-    assert rates.loc["2025-11-10"] == pytest.approx(1.4010)
-
-
 def test_day_without_rate_is_dropped_when_aligning():
     idx = pd.to_datetime(["2025-11-10", "2025-11-11", "2025-11-12"])  # 11-11: Remembrance Day
     prices = pd.DataFrame({t: [1.0, 2.0, 3.0] for t in ["XIU.TO", "XIC.TO", "VFV.TO", "SPY", "QQQ"]}, index=idx)
-    prices = fx.add_usdcad(prices, fx.parse_valet(VALET_SAMPLE))
+    prices = prices.join(fx.parse_valet(VALET_SAMPLE))
 
     assert np.isnan(prices.loc["2025-11-11", fx.COLUMN])
     assert list(missing_fx_days(prices)) == [pd.Timestamp("2025-11-11")]
