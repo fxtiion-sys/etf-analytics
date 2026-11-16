@@ -1,6 +1,6 @@
 # etf-analytics
 
-![tests](https://github.com/fxtiion-sys/etf-analytics/actions/workflows/tests.yml/badge.svg)
+![tests](https://github.com/fxtiion-sys/etf-analytics/actions/workflows/tests.yml/badge.svg) ![daily update](https://github.com/fxtiion-sys/etf-analytics/actions/workflows/daily.yml/badge.svg)
 
 A Python tool that downloads 5 years of daily prices for Canadian and US ETFs, cleans and aligns them, analyzes returns, risk and correlation, and generates a full report with one command — with a focus on how a CAD-listed S&P 500 ETF (VFV) compares to SPY.
 
@@ -11,6 +11,7 @@ VFV and SPY both track the S&P 500. For an investor in Canada, how different is 
 ## Key findings
 
 Data: 2021-11-15 to 2026-11-13, 1,217 trading days when the TSX, the NYSE and the Bank of Canada were all open.
+These findings are as of 2026-11-13. [`reports/report.md`](reports/report.md) and the charts are rebuilt every weekday with the latest data, so their numbers will move from the ones quoted here.
 
 **1. The gap between VFV and SPY is the currency, not the fund.**
 VFV returned 14.3% a year and SPY 11.5% a year. Once SPY is converted to Canadian dollars, it returned 14.5% a year — almost exactly VFV. The difference came from USD/CAD rising from 1.2517 to 1.4257 (+13.9%, Bank of Canada) over the period.
@@ -79,6 +80,19 @@ Each update downloads only the last 10 days and writes them over what is stored.
 
 The data ends at the latest date both sources have published. The Bank of Canada publishes its rate at 4:30 p.m. ET, so without this cutoff a run during the trading day would count today as a Bank of Canada holiday.
 
+### Daily update
+
+A GitHub Actions workflow ([`daily.yml`](.github/workflows/daily.yml)) runs every weekday at 23:00 UTC, after both markets close and the Bank of Canada publishes its rate:
+
+1. Restore `data/etf.db` from the Actions cache (if there is none, the next step downloads everything)
+2. Fetch new data, retrying up to three times
+3. Validate the data
+4. Build the report
+5. Save the database to the cache — only if every step above passed
+6. Commit the updated report
+
+If any step fails, nothing is committed, the cached database is not replaced, and the workflow opens a GitHub issue (or comments on the open one) with a link to the logs.
+
 ### Data validation
 
 Before any analysis, `etf_analytics/validate.py` checks the data and stops the pipeline, listing every problem, if something looks wrong:
@@ -135,6 +149,7 @@ GitHub Actions runs two jobs on every pull request: `lint` (ruff lint, ruff form
 ```
 etf-analytics/
 ├── .github/workflows/tests.yml   # run pytest on every PR and push to main
+├── .github/workflows/daily.yml   # weekday data update and report
 ├── data/etf.db                   # SQLite database (not committed)
 ├── pyproject.toml                # ruff and mypy settings
 ├── requirements-dev.txt          # ruff and mypy, pinned
