@@ -1,4 +1,5 @@
 """Tests for the Bank of Canada USD/CAD rate, using a hand-written Valet response (no network)."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -42,4 +43,3 @@ def test_day_without_rate_is_dropped_when_aligning():
     assert np.isnan(prices.loc["2025-11-11", fx.COLUMN])
     assert list(missing_fx_days(prices)) == [pd.Timestamp("2025-11-11")]
     assert pd.Timestamp("2025-11-11") not in align_trading_days(prices).index
-    

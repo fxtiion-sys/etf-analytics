@@ -1,4 +1,5 @@
 """Unit tests for metrics, using tiny series whose answers can be worked out by hand."""
+
 import numpy as np
 import pandas as pd
 import pytest

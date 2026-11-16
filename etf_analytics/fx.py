@@ -1,4 +1,5 @@
 """Download the official USD/CAD rate from the Bank of Canada Valet API and cache it as CSV."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -7,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 SERIES = "FXUSDCAD"  # Canadian dollars per 1 US dollar, Bank of Canada daily average
-COLUMN = "USDCAD"    # column name used in the price table
+COLUMN = "USDCAD"  # column name used in the price table
 VALET_URL = "https://www.bankofcanada.ca/valet/observations/{series}/json?start_date={start}&end_date={end}"
 CACHE_PATH = Path(__file__).resolve().parent.parent / "data" / "raw" / "usdcad_boc.csv"
 

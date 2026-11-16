@@ -1,7 +1,9 @@
 """Charts saved as PNG files. Each plot function takes data and an output path, and only draws."""
+
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import matplotlib
 
@@ -42,9 +44,7 @@ LABELS = {
 }
 POSITIVE = "#2a78d6"
 NEGATIVE = "#e34948"
-SEQUENTIAL = LinearSegmentedColormap.from_list(
-    "blue", ["#cde2fb", "#86b6ef", "#3987e5", "#1c5cab", "#0d366b"]
-)
+SEQUENTIAL = LinearSegmentedColormap.from_list("blue", ["#cde2fb", "#86b6ef", "#3987e5", "#1c5cab", "#0d366b"])
 
 
 def _new_axes(title: str, subtitle: str | None = None) -> tuple[plt.Figure, plt.Axes]:
@@ -71,10 +71,20 @@ def _plot_series(ax: plt.Axes, data: pd.DataFrame) -> None:
     _legend(ax, "upper left")
 
 
-def _legend(ax: plt.Axes, loc: str) -> None:
+LegendLocation = Literal["upper left", "upper right", "lower right"]
+
+
+def _legend(ax: plt.Axes, loc: LegendLocation) -> None:
     # A surface-coloured box keeps the legend readable if a line passes behind it.
-    ax.legend(loc=loc, fontsize=9, labelcolor=TEXT_SECONDARY,
-              frameon=True, facecolor=SURFACE, edgecolor="none", framealpha=0.9)
+    ax.legend(
+        loc=loc,
+        fontsize=9,
+        labelcolor=TEXT_SECONDARY,
+        frameon=True,
+        facecolor=SURFACE,
+        edgecolor="none",
+        framealpha=0.9,
+    )
 
 
 def _save(fig: plt.Figure, path: Path) -> Path:
@@ -126,8 +136,15 @@ def correlation_heatmap(prices: pd.DataFrame, path: Path) -> Path:
     for i in range(len(labels)):
         for j in range(len(labels)):
             value = corr.values[i, j]
-            ax.text(j + 0.5, i + 0.5, f"{value:.2f}", ha="center", va="center", fontsize=10,
-                    color="white" if value > 0.6 else TEXT)
+            ax.text(
+                j + 0.5,
+                i + 0.5,
+                f"{value:.2f}",
+                ha="center",
+                va="center",
+                fontsize=10,
+                color="white" if value > 0.6 else TEXT,
+            )
     colorbar = fig.colorbar(mesh, ax=ax, fraction=0.046, pad=0.04)
     colorbar.outline.set_visible(False)
     colorbar.ax.tick_params(colors=TEXT_SECONDARY, labelsize=9)
@@ -136,8 +153,9 @@ def correlation_heatmap(prices: pd.DataFrame, path: Path) -> Path:
 
 def vfv_vs_spy_growth(vfv: pd.Series, spy_cad: pd.Series, spy_usd: pd.Series, path: Path) -> Path:
     data = pd.concat([vfv.rename("VFV.TO"), spy_cad.rename("SPY_CAD"), spy_usd.rename("SPY")], axis=1)
-    fig, ax = _new_axes("VFV vs SPY: the gap is the currency",
-                        "Cumulative return. SPY converted to CAD lands on top of VFV.")
+    fig, ax = _new_axes(
+        "VFV vs SPY: the gap is the currency", "Cumulative return. SPY converted to CAD lands on top of VFV."
+    )
     ax.axhline(0, color=TEXT_SECONDARY, linewidth=0.8)
     _plot_series(ax, data / data.iloc[0] - 1)
     return _save(fig, path)
@@ -147,14 +165,20 @@ def tracking_difference(yearly_difference: pd.Series, path: Path, ytd_year: int 
     points = yearly_difference * 100  # percentage points
     labels = [f"{year} YTD" if year == ytd_year else str(year) for year in points.index]
     colors = [POSITIVE if value >= 0 else NEGATIVE for value in points]
-    fig, ax = _new_axes("VFV minus SPY in CAD, by calendar year",
-                        "Above 0: VFV did better. Below 0: VFV lagged.")
+    fig, ax = _new_axes("VFV minus SPY in CAD, by calendar year", "Above 0: VFV did better. Below 0: VFV lagged.")
     bars = ax.bar(labels, points, color=colors, width=0.6)
     ax.axhline(0, color=TEXT_SECONDARY, linewidth=0.8)
-    for bar, value in zip(bars, points):
+    for bar, value in zip(bars, points, strict=True):
         offset = 0.02 if value >= 0 else -0.02
-        ax.text(bar.get_x() + bar.get_width() / 2, value + offset, f"{value:+.2f} pp",
-                ha="center", va="bottom" if value >= 0 else "top", fontsize=10, color=TEXT)
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + offset,
+            f"{value:+.2f} pp",
+            ha="center",
+            va="bottom" if value >= 0 else "top",
+            fontsize=10,
+            color=TEXT,
+        )
     limit = max(abs(points.min()), abs(points.max())) * 1.4
     ax.set_ylim(-limit, limit)
     ax.set_ylabel("percentage points", color=TEXT_SECONDARY)

@@ -1,7 +1,7 @@
 # ETF Analytics Report
 
 **Data:** 2021-11-15 to 2026-11-13, 1,217 trading days when the TSX, the NYSE and the Bank of Canada were all open.  
-**Generated:** 2026-11-14  
+**Generated:** 2026-11-16  
 **Sharpe ratio risk-free rate (assumption):** 0.0% per year
 
 ## 1. Summary

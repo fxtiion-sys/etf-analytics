@@ -1,9 +1,10 @@
 """Align Canadian and US trading calendars before computing returns."""
+
 from __future__ import annotations
 
 import pandas as pd
 
-from etf_analytics.fetch import fx
+from etf_analytics import fx
 from etf_analytics.fetch import load_data
 
 CANADA = ["XIU.TO", "XIC.TO", "VFV.TO"]
@@ -28,6 +29,7 @@ def holiday_mismatches(prices: pd.DataFrame) -> dict[str, pd.DatetimeIndex]:
         "us_only": prices.index[us_closed & ~ca_closed],
         "both": prices.index[ca_closed & us_closed],
     }
+
 
 def missing_fx_days(prices: pd.DataFrame) -> pd.DatetimeIndex:
     """Dates when both markets were open but the Bank of Canada published no rate.

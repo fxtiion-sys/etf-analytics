@@ -102,13 +102,24 @@ python -m pip install -r requirements.txt
 python -m etf_analytics.report    # data → metrics → charts → reports/report.md
 python -m pytest -v               # run the unit tests
 ```
+For development, install the extra tools and run the same checks as CI:
+
+```bash
+python -m pip install -r requirements-dev.txt
+ruff check .          # lint
+ruff format .         # format
+mypy                  # type check
+```
 
 The first run reads the cached CSVs. Use `python -m etf_analytics.fetch --refresh` to download fresh data. Each step can also be run on its own: `fetch`, `clean`, `validate`, `tracking`, `charts`.
+
 ## Tests
 
 Every metric is checked against small series whose answers can be worked out by hand. For example, prices `[100, 110, 99]` must give returns of `+10%` and `−10%` and a maximum drawdown of `−10%`.
-The chart and report tests use small fake data with Canadian, US and Bank of Canada holidays, and the Bank of Canada download is tested on a hand-written API response, so the whole suite runs without the network. GitHub Actions runs it on every pull request.
+The chart and report tests use small fake data with Canadian, US and Bank of Canada holidays, and the Bank of Canada download is tested on a hand-written API response, so the whole suite runs without the network.
 Each data check is tested by starting from clean fake data and breaking it on purpose, for example a +20% jump or a price frozen for five days.
+
+GitHub Actions runs two jobs on every pull request: `lint` (ruff lint, ruff format check and mypy type check) and `pytest`.
 
 ## Project structure
 
@@ -117,6 +128,8 @@ etf-analytics/
 ├── .github/workflows/tests.yml   # run pytest on every PR and push to main
 ├── data/raw/prices.csv           # cached prices
 ├── data/raw/usdcad_boc.csv       # cached Bank of Canada USD/CAD rate
+├── pyproject.toml                # ruff and mypy settings
+├── requirements-dev.txt          # ruff and mypy, pinned
 ├── etf_analytics/
 │   ├── fetch.py                  # download + cache
 │   ├── fx.py                     # Bank of Canada USD/CAD rate

@@ -1,4 +1,5 @@
 """Tests for the Markdown report, using small fake data (no network)."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -14,16 +15,14 @@ def fake_prices():
     data["USDCAD"] = data["CAD=X"] * (1 + rng.normal(0, 0.001, len(idx)))
     prices = pd.DataFrame(data, index=idx)
     prices.loc["2022-07-01", ["XIU.TO", "XIC.TO", "VFV.TO"]] = np.nan  # Canada Day
-    prices.loc["2022-07-04", ["SPY", "QQQ"]] = np.nan                  # US Independence Day
-    prices.loc["2022-11-11", "USDCAD"] = np.nan                       # Remembrance Day (Bank of Canada closed)
+    prices.loc["2022-07-04", ["SPY", "QQQ"]] = np.nan  # US Independence Day
+    prices.loc["2022-11-11", "USDCAD"] = np.nan  # Remembrance Day (Bank of Canada closed)
     return prices
 
 
 def test_markdown_table_formats_values():
     df = pd.DataFrame({"Return": [0.1234]}, index=["VFV"])
-    assert report.markdown_table(df, {"Return": "{:.1%}"}, "ETF") == (
-        "| ETF | Return |\n|---|---:|\n| VFV | 12.3% |"
-    )
+    assert report.markdown_table(df, {"Return": "{:.1%}"}, "ETF") == ("| ETF | Return |\n|---|---:|\n| VFV | 12.3% |")
 
 
 def test_build_report_writes_markdown_and_charts(tmp_path):
@@ -36,6 +35,7 @@ def test_build_report_writes_markdown_and_charts(tmp_path):
     for chart in ["cumulative_returns.png", "vfv_vs_spy.png", "tracking_difference.png"]:
         assert f"({chart})" in text
         assert (tmp_path / chart).exists()
+
 
 def test_build_report_stops_on_bad_data(tmp_path):
     prices = fake_prices()

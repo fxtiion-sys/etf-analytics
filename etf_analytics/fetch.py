@@ -1,10 +1,12 @@
 """Download daily ETF prices from Yahoo Finance and cache them as CSV."""
+
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
 import pandas as pd
+
 from etf_analytics import fx
 
 TICKERS = ["XIU.TO", "XIC.TO", "VFV.TO", "SPY", "QQQ", "CAD=X"]
@@ -36,6 +38,7 @@ def load_prices(refresh: bool = False, path: Path = CACHE_PATH) -> pd.DataFrame:
     path.parent.mkdir(parents=True, exist_ok=True)
     prices.to_csv(path)
     return prices
+
 
 def load_data(refresh: bool = False) -> pd.DataFrame:
     """Yahoo prices plus the Bank of Canada USD/CAD rate, both cached as CSV.

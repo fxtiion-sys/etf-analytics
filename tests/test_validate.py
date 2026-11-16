@@ -1,4 +1,5 @@
 """Tests for the data checks, using small fake data that is clean until we break it on purpose."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -50,7 +51,7 @@ def test_negative_price_is_reported():
 
 def test_large_jump_is_reported_with_column_and_date():
     prices = clean_prices()
-    prices.loc[prices.index[10]:, "QQQ"] *= 1.20  # +20% in one day, then stays there
+    prices.loc[prices.index[10] :, "QQQ"] *= 1.20  # +20% in one day, then stays there
     issues = validate.check_aligned(prices)
     assert len(issues) == 1
     assert issues[0].startswith("QQQ: daily move of +")
@@ -59,7 +60,7 @@ def test_large_jump_is_reported_with_column_and_date():
 
 def test_fx_has_a_tighter_limit_than_etfs():
     prices = clean_prices()
-    prices.loc[prices.index[10]:, ["USDCAD", "CAD=X"]] *= 1.06  # +6%: fine for an ETF, not for USD/CAD
+    prices.loc[prices.index[10] :, ["USDCAD", "CAD=X"]] *= 1.06  # +6%: fine for an ETF, not for USD/CAD
     issues = validate.check_aligned(prices)
     assert any(i.startswith("USDCAD: daily move") for i in issues)
     assert any(i.startswith("CAD=X: daily move") for i in issues)

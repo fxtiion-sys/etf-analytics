@@ -1,4 +1,5 @@
 """Unit tests for the VFV vs SPY tracking functions."""
+
 import pandas as pd
 import pytest
 
@@ -25,7 +26,7 @@ def test_calendar_year_returns_uses_previous_year_end():
 def test_tracking_difference_is_negative_when_etf_lags():
     idx = pd.to_datetime(["2021-12-31", "2022-12-30"])
     benchmark = pd.Series([100.0, 110.0], index=idx)  # +10%
-    etf = pd.Series([100.0, 109.0], index=idx)        # +9%
+    etf = pd.Series([100.0, 109.0], index=idx)  # +9%
     assert tracking.tracking_difference(etf, benchmark).iloc[0] == pytest.approx(-0.01)
 
 

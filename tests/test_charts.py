@@ -1,4 +1,5 @@
 """Smoke test: every chart is drawn from small fake data without errors or network access."""
+
 import numpy as np
 import pandas as pd
 

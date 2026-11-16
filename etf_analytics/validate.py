@@ -1,4 +1,5 @@
 """Check the price table before any analysis runs, and stop the pipeline if something looks wrong."""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -9,10 +10,10 @@ from etf_analytics.fetch import TICKERS
 REQUIRED_COLUMNS = [*TICKERS, fx.COLUMN]
 FX_COLUMNS = ["CAD=X", fx.COLUMN]
 
-MAX_DAILY_MOVE = 0.15     # largest real ETF move in the data: QQQ +12.0% (April 2025)
+MAX_DAILY_MOVE = 0.15  # largest real ETF move in the data: QQQ +12.0% (April 2025)
 MAX_FX_DAILY_MOVE = 0.05  # largest real USD/CAD move in the data: about 2%
-STALE_DAYS = 5            # the same price on 5 trading days in a row means a frozen feed
-MAX_GAP_DAYS = 7          # longest real gap is 6 calendar days, over Christmas
+STALE_DAYS = 5  # the same price on 5 trading days in a row means a frozen feed
+MAX_GAP_DAYS = 7  # longest real gap is 6 calendar days, over Christmas
 MAX_FX_DIFFERENCE = 0.03  # Bank of Canada vs Yahoo USD/CAD; the real maximum is about 1.6%
 
 
