@@ -1,4 +1,5 @@
 """VFV vs SPY: convert SPY to Canadian dollars and measure how closely VFV tracks it."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -30,7 +31,7 @@ def tracking_difference(etf_prices: pd.Series, benchmark_prices: pd.Series) -> p
 
 
 def rolling_tracking_error(
-        etf_returns: pd.Series, benchmark_returns: pd.Series, window: int = 60, periods: int = 252
+    etf_returns: pd.Series, benchmark_returns: pd.Series, window: int = 60, periods: int = 252
 ) -> pd.Series:
     """Annualized rolling standard deviation of daily return differences."""
     return (etf_returns - benchmark_returns).rolling(window).std() * np.sqrt(periods)
@@ -46,10 +47,12 @@ def main() -> None:
     print("== Headline metrics ==")
     print(metrics.summary_table(compare, market="SPY_CAD").round(3))
 
-    yearly = pd.DataFrame({
-        "VFV": calendar_year_returns(prices["VFV.TO"]),
-        "SPY_CAD": calendar_year_returns(spy_cad),
-    })
+    yearly = pd.DataFrame(
+        {
+            "VFV": calendar_year_returns(prices["VFV.TO"]),
+            "SPY_CAD": calendar_year_returns(spy_cad),
+        }
+    )
     yearly["difference"] = yearly["VFV"] - yearly["SPY_CAD"]
     print("\n== Calendar-year returns (last year is year-to-date) ==")
     print(yearly.round(4))
@@ -62,13 +65,16 @@ def main() -> None:
 
     usdcad = prices[fx.COLUMN]
     fx_returns = metrics.daily_returns(usdcad)
-    print(f"\nUSD/CAD (Bank of Canada): {usdcad.iloc[0]:.4f} -> {usdcad.iloc[-1]:.4f} "
-      f"({usdcad.iloc[-1] / usdcad.iloc[0] - 1:+.1%})")
+    print(
+        f"\nUSD/CAD (Bank of Canada): {usdcad.iloc[0]:.4f} -> {usdcad.iloc[-1]:.4f} "
+        f"({usdcad.iloc[-1] / usdcad.iloc[0] - 1:+.1%})"
+    )
     print(f"Correlation of SPY (USD) daily returns with USD/CAD: {returns['SPY'].corr(fx_returns):.2f}")
 
     yahoo_cad = to_cad(prices["SPY"], prices["CAD=X"])
     yahoo_te = (returns["VFV.TO"] - metrics.daily_returns(yahoo_cad)).std() * np.sqrt(252)
     print(f"Tracking error with Yahoo's CAD=X instead: {yahoo_te:.3%}")
+
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,5 @@
 """Build reports/report.md in one command: prices -> metrics -> tracking -> charts -> Markdown."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -61,10 +62,12 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
     compare_summary = compare_summary[["annual_return", "annual_volatility", "max_drawdown"]]
     compare_summary = compare_summary.rename(index=charts.LABELS, columns=METRIC_NAMES)
 
-    yearly = pd.DataFrame({
-        "VFV": tracking.calendar_year_returns(prices["VFV.TO"]),
-        "SPY in CAD": tracking.calendar_year_returns(spy_cad),
-    })
+    yearly = pd.DataFrame(
+        {
+            "VFV": tracking.calendar_year_returns(prices["VFV.TO"]),
+            "SPY in CAD": tracking.calendar_year_returns(spy_cad),
+        }
+    )
     yearly["Difference (pp)"] = (yearly["VFV"] - yearly["SPY in CAD"]) * 100
     yearly.index = [f"{year} YTD" if year == end.year else str(year) for year in yearly.index]
 
@@ -86,7 +89,8 @@ def build_report(raw_prices: pd.DataFrame, out_dir: Path = charts.REPORTS_DIR) -
         "# ETF Analytics Report",
         "",
         f"**Data:** {start} to {end}, {len(prices):,} trading days when the TSX, the NYSE "
-        "and the Bank of Canada were all open.  ",        f"**Generated:** {date.today()}  ",
+        "and the Bank of Canada were all open.  ",
+        f"**Generated:** {date.today()}  ",
         f"**Sharpe ratio risk-free rate (assumption):** {RISK_FREE_RATE:.1%} per year",
         "",
         "## 1. Summary",

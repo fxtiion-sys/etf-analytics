@@ -1,4 +1,5 @@
 """Performance and risk metrics. Pure functions: prices or returns in, numbers out."""
+
 from __future__ import annotations
 
 import numpy as np
