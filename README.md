@@ -2,7 +2,7 @@
 
 ![tests](https://github.com/fxtiion-sys/etf-analytics/actions/workflows/tests.yml/badge.svg) ![daily update](https://github.com/fxtiion-sys/etf-analytics/actions/workflows/daily.yml/badge.svg)
 
-A Python tool that downloads 5 years of daily prices for Canadian and US ETFs, cleans and aligns them, analyzes returns, risk and correlation, and generates a full report with one command — with a focus on how a CAD-listed S&P 500 ETF (VFV) compares to SPY.
+A Python data pipeline for Canadian and US ETFs: it downloads daily prices and the Bank of Canada USD/CAD rate, stores them in SQLite with incremental updates, validates the data, and builds a report with charts. A GitHub Actions workflow refreshes it every weekday, and a FastAPI service serves the results as JSON. The analysis focuses on how a CAD-listed S&P 500 ETF (VFV) compares to SPY.
 
 ## Question
 
@@ -33,7 +33,7 @@ The full report with all tables and charts is in [`reports/report.md`](reports/r
 
 ## Data
 
-Daily prices from Yahoo Finance via `yfinance`. Prices are adjusted for dividends and splits (`auto_adjust=True`). Daily prices from Yahoo Finance via `yfinance`. Prices are adjusted for dividends and splits (`auto_adjust=True`).
+Daily prices from Yahoo Finance via `yfinance`. Prices are adjusted for dividends and splits (`auto_adjust=True`).
 The USD/CAD rate comes from the Bank of Canada [Valet API](https://www.bankofcanada.ca/valet/docs) (series `FXUSDCAD`).
 Both are stored in a local SQLite database, `data/etf.db`.
 
@@ -128,6 +128,7 @@ SPY is converted to Canadian dollars by multiplying its price by the USD/CAD rat
 
 **Limitation:** Neither exchange rate is taken at the 4 p.m. ET market close — the Bank of Canada rate is a daily average — so the day-by-day conversion still adds some timing noise. Switching from Yahoo's `CAD=X` to the Bank of Canada rate lowered the daily tracking error from 8.6% to 3.6%, but the calendar-year comparison remains the more reliable measure.
 
+
 ## How to run
 
 ```bash
@@ -169,7 +170,7 @@ GitHub Actions runs two jobs on every pull request: `lint` (ruff lint, ruff form
 
 ```
 etf-analytics/
-├── .github/workflows/tests.yml   # run pytest on every PR and push to main
+├── .github/workflows/tests.yml   # lint, type check and tests on every PR and push to main
 ├── .github/workflows/daily.yml   # weekday data update and report
 ├── data/etf.db                   # SQLite database (not committed)
 ├── pyproject.toml                # ruff and mypy settings
