@@ -1,7 +1,7 @@
 # ETF Analytics Report
 
 **Data:** 2021-11-15 to 2026-11-25, 1,225 trading days when the TSX, the NYSE and the Bank of Canada were all open.  
-**Generated:** 2026-11-26  
+**Generated:** 2026-11-27  
 **Sharpe ratio risk-free rate (assumption):** 0.0% per year
 
 ## 1. Summary
@@ -54,6 +54,6 @@ Daily tracking error over the full period is 3.57% (annualized), against 8.58% w
 
 ## 4. Data notes
 
-Only days when both markets and the Bank of Canada were open are used (1,309 rows before alignment, 1,225 after). Closed in Canada only: 27 days. Closed in the US only: 27 days. Closed in both: 19 days. Both markets open but no Bank of Canada rate: 10 days.
+Only days when both markets and the Bank of Canada were open are used (1,310 rows before alignment, 1,225 after). Closed in Canada only: 27 days. Closed in the US only: 28 days. Closed in both: 19 days. Both markets open but no Bank of Canada rate: 10 days.
 
 All data checks passed: no missing columns, duplicate or weekend dates, or zero or negative prices; no daily move above 15% (5% for USD/CAD); no price unchanged for 5 days in a row; no gap over 7 calendar days; and the two USD/CAD sources within 3% of each other.
